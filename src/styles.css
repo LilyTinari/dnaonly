@@ -155,10 +155,35 @@ footer a { text-decoration: none; }
 .q { display: grid; gap: 8px; margin-top: 14px; }
 .q input[type="range"] { width: 100%; }
 
+.minds { display: grid; gap: 12px; margin-top: 22px; }
+.mind { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.mind .solid, .mind .ghost { margin-top: 10px; }
+.mind-top { display: flex; width: 100%; align-items: center; justify-content: space-between; }
+.mono {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font-weight: 560;
+}
+.pill {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+.pill.soon { color: var(--muted); }
+
 @media (min-width: 900px) {
   .hero { grid-template-columns: 1.05fr 0.95fr; align-items: center; }
   .actions { grid-template-columns: 1fr; max-width: 320px; }
   .grid-2 { grid-template-columns: 1fr 1fr; }
+  .minds { grid-template-columns: repeat(3, 1fr); }
   .sheet { place-items: center; }
   .sheet article { border-radius: 24px; }
 }

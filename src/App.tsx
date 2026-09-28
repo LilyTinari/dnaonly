@@ -2,6 +2,34 @@ import { useEffect, useMemo, useState } from "react";
 import { Helix, strands } from "./helix";
 
 const KEY = "dnaonly.helix";
+const MINDS_KEY = "dnaonly.minds";
+
+const minds = [
+  {
+    id: "claude",
+    name: "Claude",
+    maker: "Anthropic",
+    status: "open" as const,
+    strand: "Neurogenesis · Plasticity",
+    copy: "The long thread. Projects, artifacts, and the way you revise a thought until it holds.",
+  },
+  {
+    id: "chatgpt",
+    name: "ChatGPT",
+    maker: "OpenAI",
+    status: "open" as const,
+    strand: "Capture · Thinking path",
+    copy: "The working chat. Instructions you already set, and the sessions you choose to bring over.",
+  },
+  {
+    id: "grok",
+    name: "Grok",
+    maker: "xAI",
+    status: "soon" as const,
+    strand: "Same helix · next",
+    copy: "The one that argues back. Same molecule when the pipe opens — not a second profile.",
+  },
+];
 
 const signals = [
   ["Health & vitals", "Sleep, HRV, energy, recovery, mood — fed into Circadian and Affect strands so every suggestion respects your biology."],
@@ -57,6 +85,17 @@ const questions = [
   ["Capture", "How completely did you log the day?"],
 ];
 
+function loadMinds() {
+  try {
+    const raw = localStorage.getItem(MINDS_KEY);
+    if (!raw) return {} as Record<string, boolean>;
+    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function loadLevels() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -72,14 +111,31 @@ function loadLevels() {
 export function App() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [levels, setLevels] = useState(loadLevels);
-  const [open, setOpen] = useState<"decode" | "account" | "connect" | null>(null);
+  const [open, setOpen] = useState<"decode" | "account" | "connect" | "mind" | null>(null);
   const [draft, setDraft] = useState(loadLevels);
+  const [held, setHeld] = useState(loadMinds);
+  const [mindId, setMindId] = useState(minds[0].id);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
   const saved = useMemo(() => levels.map((n) => Math.round(n * 100)), [levels]);
+
+  function holdMind(id: string) {
+    const next = { ...held, [id]: true };
+    setHeld(next);
+    localStorage.setItem(MINDS_KEY, JSON.stringify(next));
+    setOpen(null);
+  }
+
+  function releaseMind(id: string) {
+    const next = { ...held, [id]: false };
+    setHeld(next);
+    localStorage.setItem(MINDS_KEY, JSON.stringify(next));
+  }
+
+  const activeMind = minds.find((m) => m.id === mindId) ?? minds[0];
 
   function save(next: number[]) {
     setLevels(next);
@@ -188,6 +244,41 @@ export function App() {
               Curious · Wired · Reframed · Compounding · Mastery
             </p>
           </article>
+        </section>
+
+        <section className="wrap section" id="minds">
+          <p className="kicker">Minds you already use</p>
+          <h2 style={{ marginTop: 16 }}>Claude, ChatGPT, and Grok — on the same helix.</h2>
+          <p className="lede">
+            The thinking strand should not start from zero just because the chat lived somewhere
+            else. Connect the models you already think with. What you approve becomes nodes on
+            this molecule. Grok is next, not missing.
+          </p>
+          <div className="minds">
+            {minds.map((mind) => (
+              <article className="card mind" key={mind.id}>
+                <div className="mind-top">
+                  <span className="mono">{mind.name.slice(0, 1)}</span>
+                  <span className={mind.status === "soon" ? "pill soon" : "pill"}>
+                    {held[mind.id] ? "Slot held" : mind.status === "soon" ? "Soon" : "Ready to link"}
+                  </span>
+                </div>
+                <h3>{mind.name}</h3>
+                <p className="fine" style={{ letterSpacing: "0.08em" }}>{mind.maker} · {mind.strand}</p>
+                <p>{mind.copy}</p>
+                <button
+                  className={mind.status === "soon" && !held[mind.id] ? "ghost" : "solid"}
+                  type="button"
+                  onClick={() => {
+                    setMindId(mind.id);
+                    setOpen("mind");
+                  }}
+                >
+                  {held[mind.id] ? "Edit slot" : mind.status === "soon" ? "Keep my place" : `Connect ${mind.name}`}
+                </button>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section className="wrap section">
@@ -299,6 +390,7 @@ export function App() {
         <p>dnaonly.ai · Your mind, mapped</p>
         <nav>
           <a href="#molecule">Helix</a>
+          <a href="#minds">Minds</a>
           <a href="#top">Top</a>
         </nav>
         <p>© 2026</p>
@@ -344,6 +436,28 @@ export function App() {
                   generate, in this browser. Nothing is sent.
                 </p>
                 <button className="solid" type="button" onClick={() => setOpen(null)}>Close</button>
+              </>
+            ) : null}
+            {open === "mind" ? (
+              <>
+                <p className="kicker">{activeMind.maker}</p>
+                <h2 style={{ marginTop: 10 }}>{activeMind.name} writes into the helix. It does not replace it.</h2>
+                <p>
+                  {activeMind.status === "soon"
+                    ? "Grok is not on the pipe yet. Holding a place only remembers that you want it. No key, no account, nothing sent."
+                    : "When the account is live, you approve the chats that come across. This preview only holds the slot on this device. It will not ask for an API key, and it does not read Claude or ChatGPT from here."}
+                </p>
+                <p className="fine">Lands on {activeMind.strand}.</p>
+                <div className="actions" style={{ marginTop: 16 }}>
+                  <button className="solid" type="button" onClick={() => holdMind(activeMind.id)}>
+                    {held[activeMind.id] ? "Slot already held" : activeMind.status === "soon" ? "Keep my place" : "Hold this slot"}
+                  </button>
+                  {held[activeMind.id] ? (
+                    <button className="ghost" type="button" onClick={() => releaseMind(activeMind.id)}>
+                      Release
+                    </button>
+                  ) : null}
+                </div>
               </>
             ) : null}
             {open === "connect" ? (
